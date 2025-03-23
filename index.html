@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="ja">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>工事見積もり概算ツール</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <div class="container">
+      <header>
+        <h1>工事見積もり概算ツール</h1>
+      </header>
+
+      <main>
+        <section class="project-info">
+          <h2>プロジェクト情報</h2>
+          <div class="form-group">
+            <label for="project-name">プロジェクト名</label>
+            <input
+              type="text"
+              id="project-name"
+              placeholder="例: ○○ビル改修工事"
+            />
+          </div>
+          <div class="form-group">
+            <label for="client-name">顧客名</label>
+            <input type="text" id="client-name" placeholder="例: 株式会社○○" />
+          </div>
+          <div class="form-group">
+            <label for="project-date">工事予定日</label>
+            <input type="date" id="project-date" />
+          </div>
+        </section>
+
+        <section class="construction-selection">
+          <h2>工事選択</h2>
+          <div class="construction-list">
+            <!-- 工事種別のリストがここに表示されます -->
+          </div>
+          <button id="add-construction" class="btn">新しい工事を追加</button>
+        </section>
+
+        <section class="construction-details">
+          <h2>工事詳細と作業工程</h2>
+          <div id="construction-processes">
+            <!-- 選択された工事と作業工程がここに表示されます -->
+          </div>
+        </section>
+
+        <section class="summary">
+          <h2>見積もり合計</h2>
+          <div class="summary-items">
+            <!-- 工事ごとの小計がここに表示されます -->
+          </div>
+          <div class="tax-expenses">
+            <div class="form-group">
+              <label for="tax-rate">消費税率 (%)</label>
+              <input type="number" id="tax-rate" min="0" max="100" value="10" />
+            </div>
+            <div class="form-group">
+              <label for="misc-expenses">諸経費率 (%)</label>
+              <input
+                type="number"
+                id="misc-expenses"
+                min="0"
+                max="100"
+                value="5"
+              />
+            </div>
+          </div>
+          <div class="summary-item labor">
+            <span>人工合計:</span>
+            <span id="labor-total">0</span> 人日
+          </div>
+          <div class="summary-item tax">
+            <span>消費税:</span>
+            <span id="tax-total">0</span> 円
+          </div>
+          <div class="summary-item expenses">
+            <span>諸経費:</span>
+            <span id="expenses-total">0</span> 円
+          </div>
+          <div class="summary-item total">
+            <span>総合計:</span>
+            <span id="grand-total">0</span> 円
+          </div>
+        </section>
+
+        <div class="actions">
+          <button id="save-pdf" class="btn primary">PDFで保存</button>
+          <button id="save-data" class="btn">データを保存</button>
+          <button id="load-data" class="btn">データを読み込む</button>
+          <button id="clear-all" class="btn danger">すべてクリア</button>
+        </div>
+      </main>
+
+      <footer>
+        <p>&copy; 2025 工事見積もり概算ツール</p>
+      </footer>
+    </div>
+
+    <!-- テンプレート -->
+    <template id="construction-template">
+      <div class="construction-item" data-id="">
+        <div class="construction-header">
+          <input
+            type="text"
+            class="construction-name"
+            placeholder="工事名を入力"
+          />
+          <div class="construction-controls">
+            <div class="construction-type-container">
+              <label for="construction-type">工事種類:</label>
+              <select class="construction-type">
+                <!-- 工事種類の選択肢はJavaScriptで動的に追加されます -->
+              </select>
+            </div>
+            <button class="btn toggle-processes">作業工程を表示</button>
+            <button class="btn delete-construction danger">削除</button>
+          </div>
+        </div>
+        <div class="processes-container" style="display: none">
+          <div class="processes-list">
+            <!-- 作業工程がここに表示されます -->
+          </div>
+          <button class="btn add-process">作業工程を追加</button>
+          <div class="construction-subtotal">
+            <span>小計:</span>
+            <span class="subtotal-amount">0</span> 円
+          </div>
+        </div>
+      </div>
+    </template>
+
+    <template id="process-template">
+      <div class="process-item" data-id="">
+        <div class="process-header">
+          <input type="text" class="process-name" placeholder="作業工程名" />
+          <div class="process-type-container">
+            <label for="process-type">種類:</label>
+            <select class="process-type">
+              <!-- 作業工程の種類の選択肢はJavaScriptで動的に追加されます -->
+            </select>
+          </div>
+          <button class="btn delete-process danger">削除</button>
+        </div>
+        <div class="process-details">
+          <!-- 作業工程の種類に応じた入力フィールドがJavaScriptで動的に追加されます -->
+        </div>
+      </div>
+    </template>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <script src="script.js"></script>
+  </body>
+</html>
