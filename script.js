@@ -40,35 +40,45 @@ document.addEventListener('DOMContentLoaded', () => {
           "B1F": 1.0
         },
         "formula": "quantity * locationFactor",
-        "laborFormula": "quantity * 0.3 * locationFactor" // 人工計算式を場所係数を考慮したものに修正
-      },
-      "小計": {
-        "params": {
-          "quantity": { "label": "数量", "unit": "" },
-          "location": { "label": "場所", "unit": "", "type": "text" }
-        },
-        "unitPrice": 0,
-        "formula": "quantity",
-        "laborFormula": "0" // 変更なし
+        "laborFormula": "quantity * 0.3 * locationFactor"
       },
       "値引": {
         "params": {
           "quantity": { "label": "数量", "unit": "式" },
           "location": { "label": "場所", "unit": "", "type": "text" }
         },
-        "unitPrice": -89000.0,
+        "unitPrice": -1.0,
         "formula": "quantity",
         "laborFormula": "0" // 変更なし
       }
     },
     "土工": {
-      "仮囲組払し手間  11":{
+
+      // === ★ 追加: コンクリート打設 ===
+      "コンクリート打設": {
+        "params": {
+          "specification": { "label": "規格", "unit": "m³" },
+          "location": { "label": "場所", "unit": "", "type": "select", "options": [
+            { "value": "基礎", "label": "基礎" },
+            { "value": "地下", "label": "地下" },
+            { "value": "地上", "label": "地上" }
+          ]},
+          "forwardMortar": { "label": "先送りモルタル", "unit": "m³" },
+          "quantity": { "label": "数量", "unit": "回" }
+        },
+        "unitPrice": 0,
+        "formula": "quantity",
+        // 1日8時間として、1時間に4.25m³を消化できる場合の計算式
+        // 人工 = 規格(m³) ÷ 4.25(m³/時間) ÷ 8(時間/日) × 数量(回)
+        "laborFormula": "(specification / 4.25 / 8) * quantity"
+      },
+      "仮囲組払し":{
         "params":{"quantity":{"label":"数量","unit":"m"}},
         "unitPrice":0,
         "formula":"quantity",
         "laborFormula": "quantity * 0.05" // 変更なし
       },
-      "台風養生手間":{
+      "台風養生":{
         "params":{"quantity":{"label":"数量","unit":"m2"}},
         "unitPrice":0,
         "formula":"quantity",
@@ -80,13 +90,13 @@ document.addEventListener('DOMContentLoaded', () => {
         "formula":"quantity",
         "laborFormula": "quantity * 0.5" // 変更なし
       },
-      "スラブ鉄筋養生通路 敷き手間  21":{
+      "スラブ鉄筋養生通路 敷き":{
         "params":{"quantity":{"label":"数量","unit":"m2"}},
         "unitPrice":0,
         "formula":"quantity",
         "laborFormula": "quantity * 0.01" // 変更なし
       },
-      "外部足場下部整地手間":{
+      "外部足場下部整地":{
         "params":{"quantity":{"label":"数量","unit":"m2"}},
         "unitPrice":0,
         "formula":"quantity",
@@ -260,20 +270,39 @@ document.addEventListener('DOMContentLoaded', () => {
       // 計算式の評価 - 単純な計算式のみ対応
       let formula = taskData.laborFormula;
       
-      // quantity を実際の値に置き換え
+      // パラメータ名をそれぞれの値に置き換え
+      for (const [key, value] of Object.entries(rowData)) {
+        const regex = new RegExp(key, 'g');
+        formula = formula.replace(regex, value);
+      }
+      
+      // 従来の置換処理（既存の置換処理は念のため残す）
       formula = formula.replace(/quantity/g, qtyVal);
       
       // locationFactor を実際の値に置き換え（場所係数がある場合）
       if (params.location && rowData.location && taskData.locationFactors) {
         const locationFactor = taskData.locationFactors[rowData.location] || 1;
         formula = formula.replace(/locationFactor/g, locationFactor);
+        
+        // 古い計算式互換性のための追加コード
+        // B2FFactor, B1FFactor などの変数も locationFactors から設定
+        if (rowData.location === 'B2F') {
+          formula = formula.replace(/B2FFactor/g, locationFactor);
+        } else if (rowData.location === 'B1F') {
+          formula = formula.replace(/B1FFactor/g, locationFactor);
+        }
       }
       
       try {
         // evalを使用して計算式を評価（実務では安全な方法を検討すべき）
         laborVal = eval(formula);
+        // NaNの場合は0に設定
+        if (isNaN(laborVal)) {
+          console.error('計算結果がNaNです。計算式:', formula);
+          laborVal = 0;
+        }
       } catch (e) {
-        console.error('計算式の評価エラー:', e);
+        console.error('計算式の評価エラー:', e, '計算式:', formula);
         laborVal = 0;
       }
     }
@@ -286,15 +315,33 @@ document.addEventListener('DOMContentLoaded', () => {
     let item2 = '';
     let item3 = '';
 
-    // 場所パラメータを項目1に表示
-    if (params.location && rowData.location) {
-      const label = params.location.label || '場所';
-      item1 = `${label}: ${rowData.location}`;
-      if (params.location.unit) {
-        item1 += ` (${params.location.unit})`;
+    // 規格パラメータを項目1に表示
+    if (params.specification && rowData.specification) {
+      const label = params.specification.label || '規格';
+      item1 = `${label}: ${rowData.specification}`;
+      if (params.specification.unit) {
+        item1 += ` (${params.specification.unit})`;
       }
     }
     
+    // 場所パラメータを項目2に表示
+    if (params.location && rowData.location) {
+      const label = params.location.label || '場所';
+      item2 = `${label}: ${rowData.location}`;
+      if (params.location.unit) {
+        item2 += ` (${params.location.unit})`;
+      }
+    }
+    
+    // 先送りモルタルパラメータを項目3に表示
+    if (params.forwardMortar && rowData.forwardMortar) {
+      const label = params.forwardMortar.label || '先送りモルタル';
+      item3 = `${label}: ${rowData.forwardMortar}`;
+      if (params.forwardMortar.unit) {
+        item3 += ` (${params.forwardMortar.unit})`;
+      }
+    }
+
     // 人工計算式は項目に表示しない
 
     const tr = document.createElement('tr');
@@ -304,8 +351,8 @@ document.addEventListener('DOMContentLoaded', () => {
       <td>${item1}</td>
       <td>${item2}</td>
       <td>${item3}</td>
-      <td class="labor-cell">${laborVal.toFixed(2)}</td>
-      <td class="cost-cell">${costVal.toLocaleString('ja-JP')}</td>
+      <td class="labor-cell">${Math.floor(laborVal)}</td>
+      <td class="cost-cell">${Math.floor(costVal).toLocaleString('ja-JP')}</td>
       <td><button class="remove-btn">削除</button></td>
     `;
     tr.querySelector('.remove-btn').addEventListener('click', () => {
