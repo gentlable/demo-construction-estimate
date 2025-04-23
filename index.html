@@ -5,22 +5,29 @@
   <title>簡易見積もりツール PoC</title>
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <link rel="stylesheet" href="styles.css">
+  <style>
+    .required::after {
+      content: "*";
+      color: red;
+      margin-left: 3px;
+    }
+  </style>
 </head>
 <body>
   <h1>簡易見積もりツール PoC</h1>
 
   <section class="selector-area">
     <div class="form-group">
-      <label for="constructionType">工事種別:</label>
-      <select id="constructionType">
+      <label for="constructionType" class="required">工事種別:</label>
+      <select id="constructionType" required>
         <option value="">-- 選択してください --</option>
       </select>
     </div>
 
     <div id="taskInputs" class="hidden">
       <div class="form-group">
-        <label for="taskSelect">作業:</label>
-        <select id="taskSelect">
+        <label for="taskSelect" class="required">作業:</label>
+        <select id="taskSelect" required>
           <option value="">-- 選択してください --</option>
         </select>
       </div>

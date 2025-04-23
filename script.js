@@ -20,11 +20,11 @@ document.addEventListener('DOMContentLoaded', () => {
           "B2F": 1.0,
           "B1F": 1.0,
           "免震下部": 1.1,
-          "免震上部": 0.55,
+          "免震上部": 0.95,
           "構台下": 0.82
         },
         "formula": "quantity * locationFactor",
-        "laborFormula": "quantity * 0.5 * locationFactor" // 人工計算式を場所係数を考慮したものに修正
+        "laborFormula": "quantity * 1.5 * locationFactor" // 人工計算式を場所係数を考慮したものに修正
       },
       "PC仕口": {
         "params": {
@@ -172,12 +172,14 @@ document.addEventListener('DOMContentLoaded', () => {
 
       const label = document.createElement('label');
       label.textContent = `${info.label || key} ${info.unit ? '(' + info.unit + ')' : ''}`;
+      label.className = 'required';
 
       if (info.type === 'select' && Array.isArray(info.options)) {
         // セレクトボックスの生成
         const select = document.createElement('select');
         select.id = key;
         select.name = key;
+        select.required = true;
         
         // デフォルトの選択肢
         const defaultOption = document.createElement('option');
@@ -200,6 +202,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const input = document.createElement('input');
         input.id = key;
         input.name = key;
+        input.required = true;
         if(info.type === 'text') {
           input.type = 'text';
         } else {
@@ -225,8 +228,55 @@ document.addEventListener('DOMContentLoaded', () => {
 
   addBtn.addEventListener('click', e => {
     e.preventDefault();
+    
+    // 必須チェックを追加
+    if (!validateForm()) {
+      return;
+    }
+    
     addDetailRow();
   });
+
+  // 必須入力チェック関数
+  function validateForm() {
+    const type = constructionSelect.value;
+    const task = taskSelect.value;
+    
+    if (!type) {
+      alert('工事種別を選択してください。');
+      return false;
+    }
+    
+    if (!task) {
+      alert('作業を選択してください。');
+      return false;
+    }
+    
+    const taskData = masterData[type][task];
+    const params = taskData.params || {};
+    
+    // パラメータの必須チェック
+    for (const [key, info] of Object.entries(params)) {
+      const input = document.getElementById(key);
+      if (!input) continue;
+      
+      const value = input.value.trim();
+      if (!value) {
+        alert(`${info.label || key}を入力してください。`);
+        input.focus();
+        return false;
+      }
+      
+      // 数値型の場合は有効な数値かチェック
+      if (input.type === 'number' && (isNaN(parseFloat(value)) || parseFloat(value) < 0)) {
+        alert(`${info.label || key}には有効な数値を入力してください。`);
+        input.focus();
+        return false;
+      }
+    }
+    
+    return true;
+  }
 
   function addDetailRow() {
     const type = constructionSelect.value;
@@ -243,12 +293,23 @@ document.addEventListener('DOMContentLoaded', () => {
       if (info.type === 'select') {
         rowData[k] = inp.value;
       } else {
-        rowData[k] = info.type === 'text' ? inp.value : (parseFloat(inp.value) || 0);
+        // 数値変換をより確実に行う
+        if (info.type === 'text') {
+          rowData[k] = inp.value;
+        } else {
+          // 数値の場合、空文字や変換できない場合は0にする
+          const numVal = parseFloat(inp.value);
+          rowData[k] = !isNaN(numVal) ? numVal : 0;
+        }
       }
     }
 
     // 計算式の評価
     let qtyVal = 0;
+    
+    // 数量（quantity）が正しく取得できているか確認
+    const quantityValue = rowData.quantity !== undefined ? rowData.quantity : 0;
+    console.log("数量値:", quantityValue, "場所:", rowData.location);
     
     // location が存在するときだけ場所係数を適用
     if (taskData.formula === 'quantity * locationFactor' && params.location && rowData.location) {
@@ -256,12 +317,13 @@ document.addEventListener('DOMContentLoaded', () => {
       if (taskData.locationFactors && taskData.locationFactors[rowData.location]) {
         locationFactor = taskData.locationFactors[rowData.location];
       }
-      qtyVal = (rowData.quantity || 0) * locationFactor;
+      qtyVal = quantityValue * locationFactor;
+      console.log("計算: ", quantityValue, "*", locationFactor, "=", qtyVal);
     } else if (taskData.formula === 'quantity') {
-      qtyVal = rowData.quantity || 0;
+      qtyVal = quantityValue;
     } else {
       // その他の計算式がある場合はここに追加
-      qtyVal = rowData.quantity || 0;
+      qtyVal = quantityValue;
     }
     
     // 人工計算 - マスタの計算式を使用
